@@ -1,0 +1,259 @@
+rm(list=ls())
+par(mfrow=c(1,2))
+x=seq(0,50,length=10000)
+
+QXL=function(par,x){
+theta=par[1]
+alpha=par[2]
+(theta/(alpha+1))*(alpha+(theta*x+theta)/(theta+1))*exp(-theta*x)
+}
+y=0.07
+
+plot(x,QXL(c(0.1,0.001),x),type="l",ylab="f(x)",ylim=c(0,y))
+lines(x,QXL(c(0.1,0.001),x),lwd=2,lty=1,col="red")
+lines(x,QXL(c(0.1,0.1),x),lwd=2,lty=1,col="purple")
+lines(x,QXL(c(0.1,0.5),x),lwd=2,lty=1,col="cyan")
+lines(x,QXL(c(0.1,0.8),x),lwd=2,lty=1,col="green")
+lines(x,QXL(c(0.1,1.0),x),lwd=2,lty=1,col="black")
+lines(x,QXL(c(0.1,1.2),x),lwd=2,lty=1,col="blue")
+lines(x,QXL(c(0.1,1.4),x),lwd=2,lty=1,col="orange")
+
+colors <- c("red","purple","cyan", "green","black","blue","orange")
+labels <- c(expression(paste(theta," = 0.10 ", alpha," = 0.001 ")),
+expression(paste(theta," = 0.10 ", alpha," = 0.1 ")),
+expression(paste(theta," = 0.10 ", alpha," = 0.5 ")),
+expression(paste(theta," = 0.10 ", alpha," = 0.8 ")),
+expression(paste(theta," = 0.10 ", alpha," = 1.0 ")),
+expression(paste(theta," = 0.10 ", alpha," = 1.2 ")),
+expression(paste(theta," = 0.10 ", alpha," = 1.4 ")))
+legend("topright", inset=.03,labels, lwd=2, lty=c(1), col=colors)
+
+################
+x=seq(0,10,length=1000)
+QXL=function(par,x){
+theta=par[1]
+alpha=par[2]
+(theta/(alpha+1))*(alpha+(theta*x+theta)/(theta+1))*exp(-theta*x)
+}
+y=1
+
+plot(x,QXL(c(0.5,0.5),x),type="l",ylab="f(x)",ylim=c(0,y))
+lines(x,QXL(c(0.5,0.5),x),lwd=2,lty=1,col="red")
+lines(x,QXL(c(0.6,0.5),x),lwd=2,lty=1,col="purple")
+lines(x,QXL(c(0.7,0.5),x),lwd=2,lty=1,col="cyan")
+lines(x,QXL(c(0.8,0.5),x),lwd=2,lty=1,col="green")
+lines(x,QXL(c(1.0,0.5),x),lwd=2,lty=1,col="black")
+lines(x,QXL(c(1.2,0.5),x),lwd=2,lty=1,col="blue")
+lines(x,QXL(c(1.4,0.5),x),lwd=2,lty=1,col="orange")
+
+colors <- c("red","purple","cyan", "green","black","blue","orange")
+labels <- c(expression(paste(theta," = 0.5 ", alpha," = 0.5 ")),
+expression(paste(theta," = 0.6 ", alpha," = 0.5 ")),
+expression(paste(theta," = 0.7 ", alpha," = 0.5 ")),
+expression(paste(theta," = 0.8 ", alpha," = 0.5 ")),
+expression(paste(theta," = 1.0 ", alpha," = 0.5 ")),
+expression(paste(theta," = 1.2 ", alpha," = 0.5 ")),
+expression(paste(theta," = 1.4 ", alpha," = 0.5 ")))
+legend("topright", inset=.03,labels, lwd=2, lty=c(1), col=colors)
+
+####################################################################
+Simulation 
+
+rm(list=ls())
+myrand<- function(R,lambda,alpha){
+       fun <- function (x) (1-(1+((lambda*x)/((alpha+1)*(lambda+1))))*exp(-lambda*x))-R
+       uni <- uniroot(fun, c(0, 1000),tol = 1e-6)$root
+       return(uni) 
+       }
+#PDF
+DLXL  = function(x,theta) {
+lambda= theta[1]
+alpha = theta[2]
+      (lambda/(1+alpha))*exp(-lambda*x)*(alpha+((lambda*(1+x))/(1+lambda)))
+      }
+#CDF
+PLXL  = function(x,theta) {
+lambda= theta[1]
+alpha = theta[2]
+      (1-(1+((lambda*x)/((alpha+1)*(lambda+1))))*exp(-lambda*x))
+      }
+############### functions ####################
+likelihood = function(para, x,pdf0){
+           -sum(log(pdf0(x,para))) }
+MLE=function (pdf0,theta0,data,lim_inf,lim_sup) {
+    max = nlminb(start = theta0,objective=likelihood,x=data,pdf0=pdf0,
+    lower=lim_inf, upper=lim_sup,control=list(iter.max=500,rel.tol=1e-6))
+    return(max$par)
+    }
+######## Anderson–Darling ###########
+A = function(para,x,cdf0){
+    n=length(x)
+    x=sort(x)
+    D = rep(0,l=length(x))
+    for(i in 1:(length(x))){
+    const = (2*i-1)
+    D[i] = const*(log(cdf0(x[i],para))+log(1-cdf0(x[n-i+1],para)))
+    }
+    -n-(1/n)*sum(D)
+    }        
+AD  =  function (cdf0,theta0,data,lim_inf,lim_sup){
+    max = nlminb(start = theta0,objective=A,x=data,cdf0=cdf0,
+    lower   = lim_inf, upper = lim_sup,
+    control = list(iter.max=500,rel.tol=1e-6))
+    return(max$par)         
+    }
+############ Cramér von-Mises ####################
+C = function(para, x,cdf0){
+    n=length(x)
+    x=sort(x)
+    D = rep(0,l=length(x))
+    for(i in 1:(length(x))){
+    D[i] = ((cdf0(x[i],para))-((2*i-1)/(2*n)))^2
+    }
+    (1/(12*n))+sum(D)
+    }
+CR= function (cdf0,theta0,data,lim_inf,lim_sup){
+    max = nlminb(start = theta0,objective=C,x=data,cdf0=cdf0,
+    lower= lim_inf, upper = lim_sup,control = list(iter.max=500,rel.tol=1e-6))
+    return(max$par)
+    }
+####### Least squares#######
+O = function(para, x,cdf0)         {
+    n=length(x)
+    x=sort(x)
+    D = rep(0,l=length(x))
+    for(i in 1:(length(x))){
+    D[i] =(cdf0(x[i],para)-(i/(n+1)))^2
+    }
+    sum(D)
+    }        
+OLS =  function (cdf0,theta0,data,lim_inf,lim_sup)          {
+    max = nlminb(start = theta0,objective=O,x=data,cdf0=cdf0,
+    lower   = lim_inf, upper = lim_sup,
+    control = list(iter.max=500,rel.tol=1e-6))
+    return(max$par)
+    }
+####### weighted least squares #######
+W = function(para, x,cdf0){
+    n=length(x)
+    x=sort(x)
+    D = rep(0,l=length(x))
+    for(i in 1:(length(x))){
+    const = ((n+1)^2)*(n+2)/(i*(n-i+1))
+    D[i] = const*(cdf0(x[i],para)-(i/(n+1)))^2
+    }
+    sum(D)
+    }        
+WLS = function (cdf0,theta0,data,lim_inf,lim_sup){
+    max = nlminb(start = theta0,objective=W,x=data,cdf0=cdf0,
+    lower   = lim_inf, upper = lim_sup,control = list(iter.max=500,rel.tol=1e-6))
+    return(max$par)
+    }
+########  MPS ###########
+S=function(para, x,cdf0,pdf0) {
+    n=length(x)
+    x=sort(x)
+    D = rep(0,l=(n+1))
+    D[1]= cdf0(x[1],para)
+    D[n+1] = 1-cdf0(x[n],para)
+    for(i in 2:n){
+    if(x[i]==x[i-1]){
+    D[i] = pdf0(x[i],para)
+    }else{
+    D[i] = cdf0(x[i],para)-cdf0(x[i-1],para)
+    }}
+    -(1/(n+1))*sum(log(D))
+    }         
+MPS = function (cdf0,pdf0,theta0,data,lim_inf,lim_sup) {
+    max = nlminb(start= theta0, objective=S,x=data,cdf0=cdf0,
+    pdf0=pdf0,lower = lim_inf, upper = lim_sup,control = list(iter.max=500,rel.tol=1e-6))
+    return(max$par)
+    }
+############ Simulation ##############
+rand<- c();randjb <- c()
+p1MLE=p1ADE=p1CVME=p1OLSE=p1WLSE=p1MPSE=c()
+p2MLE=p2ADE=p2CVME=p2OLSE=p2WLSE=p2MPSE=c()
+b1MLE=b1ADE=b1CVME=b1OLSE=b1WLSE=b1MPSE=c()
+b2MLE=b2ADE=b2CVME=b2OLSE=b2WLSE=b2MPSE=c()
+mse1MLE=mse1ADE=mse1CVME=mse1OLSE=mse1WLSE=mse1MPSE=c()
+mse2MLE=mse2ADE=mse2CVME=mse2OLSE=mse2WLSE=mse2MPSE=c()
+
+elambda<- 1.0
+ealpha<-  .5
+ni <- c(50,100,200,300,500)
+for(m in 1:5) {
+N<- 1000
+ParMLE <-array(dim=c(N,2))
+ParADE <-array(dim=c(N,2))
+ParCVME<-array(dim=c(N,2))
+ParOLSE<-array(dim=c(N,2))
+ParWLSE<-array(dim=c(N,2))
+ParMPSE<-array(dim=c(N,2))
+
+for(s in 1:N){
+n <-ni[m]
+for(j in 1:n){
+   urand<- runif(1,0,1)
+   rand[j]<- urand
+   randjb[j]<- myrand(urand,lambda=elambda,alpha=ealpha)
+   }
+data<- randjb
+lower  = c(0,-1)
+upper  = c(5,1)
+theta  = c(elambda,ealpha)
+starts = theta
+mmMLE  = suppressWarnings(MLE(pdf0=DLXL,theta0=starts,data=data,lim_inf=lower,lim_sup=upper))
+mmADE  = suppressWarnings(AD(cdf0=PLXL,theta0=starts,data=data,lim_inf=lower,lim_sup=upper))
+mmCVME = suppressWarnings(CR(cdf0=PLXL,theta0=starts,data=data,lim_inf=lower,lim_sup=upper))
+mmOLSE = suppressWarnings(OLS(cdf0=PLXL,theta0=starts,data=data,lim_inf=lower,lim_sup=upper))
+mmWLSE = suppressWarnings(WLS(cdf0=PLXL,theta0=starts,data=data,lim_inf=lower,lim_sup=upper))
+mmMPSE = MPS(cdf0=PLXL,pdf0=DLXL,starts,data,lower,upper)
+ParMLE[s,]<- c(mmMLE)
+ParADE[s,]<- c(mmADE)
+ParCVME[s,]<-c(mmCVME)
+ParOLSE[s,]<-c(mmOLSE)
+ParWLSE[s,]<-c(mmWLSE)
+ParMPSE[s,]<-c(mmMPSE)
+}
+p1MLE[m] <- mean(ParMLE[,1])
+p2MLE[m] <- mean(ParMLE[,2])
+b1MLE[m] <- abs(mean(ParMLE[,1])-elambda)
+b2MLE[m] <- abs(mean(ParMLE[,2])-ealpha)
+mse1MLE[m]<-sum((ParMLE[,1]-elambda)^2)/N
+mse2MLE[m]<-sum((ParMLE[,2]-ealpha)^2)/N
+
+p1ADE[m] <- mean(ParADE[,1])
+p2ADE[m] <- mean(ParADE[,2])
+b1ADE[m] <- abs(mean(ParADE[,1])-elambda)
+b2ADE[m] <- abs(mean(ParADE[,2])-ealpha)
+mse1ADE[m]<-sum((ParADE[,1]-elambda)^2)/N
+mse2ADE[m]<-sum((ParADE[,2]-ealpha)^2)/N
+
+p1CVME[m] <- mean(ParCVME[,1])
+p2CVME[m] <- mean(ParCVME[,2])
+b1CVME[m] <- abs(mean(ParCVME[,1])-elambda)
+b2CVME[m] <- abs(mean(ParCVME[,2])-ealpha)
+mse1CVME[m]<-sum((ParCVME[,1]-elambda)^2)/N
+mse2CVME[m]<-sum((ParCVME[,2]-ealpha)^2)/N
+
+p1OLSE[m] <- mean(ParOLSE[,1])
+p2OLSE[m] <- mean(ParOLSE[,2])
+b1OLSE[m] <- abs(mean(ParOLSE[,1])-elambda)
+b2OLSE[m] <- abs(mean(ParOLSE[,2])-ealpha)
+mse1OLSE[m]<-sum((ParOLSE[,1]-elambda)^2)/N
+mse2OLSE[m]<-sum((ParOLSE[,2]-ealpha)^2)/N
+
+p1WLSE[m] <- mean(ParWLSE[,1])
+p2WLSE[m] <- mean(ParWLSE[,2])
+b1WLSE[m] <- abs(mean(ParWLSE[,1])-elambda)
+b2WLSE[m] <- abs(mean(ParWLSE[,2])-ealpha)
+mse1WLSE[m]<-sum((ParWLSE[,1]-elambda)^2)/N
+mse2WLSE[m]<-sum((ParWLSE[,2]-ealpha)^2)/N
+
+p1MPSE[m] <- mean(ParMPSE[,1])
+p2MPSE[m] <- mean(ParMPSE[,2])
+b1MPSE[m] <- abs(mean(ParMPSE[,1])-elambda)
+b2MPSE[m] <- abs(mean(ParMPSE[,2])-ealpha)
+mse1MPSE[m]<-sum((ParMPSE[,1]-elambda)^2)/N
+mse2MPSE[m]<-sum((ParMPSE[,2]-ealpha)^2)/N
+}
